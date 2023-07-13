@@ -1,9 +1,6 @@
 import pygame
 import sys
 
-# 망함 이거 
-
-
 def init():
     pygame.init()
 
@@ -35,14 +32,12 @@ def init():
         "score": score,
         "lives": life,
         "bricks": bricks,
-
     }
 
     return game_state
 
 def update_screen(game_state):
     screen = game_state['screen']
-
     screen.fill((0,0,0))
 
     draw_ball_and_paddle(game_state)
@@ -50,35 +45,32 @@ def update_screen(game_state):
 
     pygame.display.flip()
 
-
 def keybord_event(game_state):
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        game_state['paddle'] -= 15
+    elif keys[pygame.K_RIGHT]:
+        game_state['paddle'] += 15
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
-        
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                game_state['paddle'] -= 15
-            elif event.key == pygame.K_RIGHT:
-                game_state['paddle'] += 15
-            
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
-                pass 
 
 def draw_bricks(game_state):
     screen = game_state['screen']
     bricks = game_state['bricks']
-
     for brick in bricks:
         pygame.draw.rect(screen, brick['color'], brick['rect'])
-    
+
 def draw_ball_and_paddle(game_state):
     screen = game_state['screen']
     ball = game_state['ball']
     paddle = game_state['paddle']
 
     paddle_width, paddle_height = 100, 10  
+    paddle = max(paddle, 0)  
+    paddle = min(paddle, screen.get_width() - paddle_width) 
+    game_state['paddle'] = paddle 
     paddle_rect = pygame.Rect(paddle, screen.get_height() - paddle_height, paddle_width, paddle_height)
     pygame.draw.rect(screen, (255, 255, 255), paddle_rect)  
 
@@ -90,8 +82,8 @@ def crash(game_state):
     ball_speed = game_state['ball_speed']
     paddle = game_state['paddle']
     bricks = game_state['bricks']
-    
-    if paddle <= ball[0] <= paddle + 100 and game_state['screen'].get_height() - 10 <= ball[1] <= game_state['screen'].get_height():
+
+    if paddle <= ball[0] <= paddle + 100 and game_state['screen'].get_height() - 20 <= ball[1] <= game_state['screen'].get_height():
         ball_speed[1] = -ball_speed[1]  
 
     for brick in bricks:
@@ -101,6 +93,20 @@ def crash(game_state):
             game_state['score'] += 1
             break 
 
+def ball_wall_collision(game_state):
+    screen_width = game_state['screen'].get_width()
+    screen_height = game_state['screen'].get_height()
+    ball = game_state['ball']
+    ball_speed = game_state['ball_speed']
+
+    if ball[0] <= 0 or ball[0] >= screen_width:
+        ball_speed[0] = -ball_speed[0]
+    if ball[1] <= 0:
+        ball_speed[1] = -ball_speed[1]
+    if ball[1] >= screen_height:
+        ball_speed[1] = -ball_speed[1]
+        game_state['lives'] -= 1
+
 def main():
     game_state = init()
     
@@ -108,11 +114,12 @@ def main():
     
     while True:
         keybord_event(game_state)
+        ball_wall_collision(game_state)
         game_state['ball'][0] += game_state['ball_speed'][0]
         game_state['ball'][1] += game_state['ball_speed'][1]
         crash(game_state)
         update_screen(game_state)
-        clock.tick(60)  # 60 FPS
+        clock.tick(60)  
 
 if __name__ == "__main__":
     main()
